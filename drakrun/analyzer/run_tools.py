@@ -180,6 +180,30 @@ def find_dangling_qemu_process_id(dom_id: int) -> Optional[int]:
     return None
 
 
-if __name__ == "__main__":
-    print(find_dangling_qemu_process_id(1))
-    print(find_dangling_qemu_process_id(15))
+def terminate_then_kill(pid: int, timeout: float = 5.0) -> bool:
+    try:
+        proc = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return True
+
+    try:
+        proc.terminate()
+        try:
+            proc.wait(timeout=timeout)
+            return True
+        except psutil.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=timeout)
+            return True
+    except psutil.NoSuchProcess:
+        return True
+    except Exception:
+        logger.exception(f"Failed to terminate/kill process {pid}")
+        return False
+
+
+def kill_dangling_qemu_process(dom_id: int) -> bool:
+    pid = find_dangling_qemu_process_id(dom_id)
+    if pid is not None:
+        if terminate_then_kill(pid):
+            logger.warning(f"Killed dangling QEMU process {pid} for domid {dom_id}")
