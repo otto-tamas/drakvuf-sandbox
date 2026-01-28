@@ -138,8 +138,9 @@ def run_vm(
             vm.destroy()
             if VirtualMachine.is_dangling(dom_id):
                 logger.warning(
-                    f"Domain ID {dom_id} is dangling after destroying VM {vm.vm_name}"
+                    f"Domain ID {dom_id} is dangling after destroying VM {vm.vm_name}. Trying to kill process..."
                 )
+                kill_dangling_qemu_process(dom_id)
 
 
 @contextlib.contextmanager
