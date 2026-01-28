@@ -5,6 +5,21 @@ from typing import Dict, Optional
 log = logging.getLogger(__name__)
 
 
+def xen_list_vms() -> list[dict[str, str]]:
+    output = subprocess.check_output(["xl", "list"], text=True)
+
+    lines = output.strip().splitlines()
+    header_line = lines.pop(0)
+    header = header_line.split()
+
+    vms = []
+    for line in lines:
+        values = line.split()
+        vm_info = dict(zip(header, values))
+        vms.append(vm_info)
+    return vms
+
+
 def xen_is_vm_running(vm_name: str) -> bool:
     result = subprocess.run(["xl", "list", vm_name], capture_output=True)
     if result.returncode == 0:
