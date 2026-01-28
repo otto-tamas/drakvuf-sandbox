@@ -14,6 +14,7 @@ from .xen import (
     xen_eject_cd,
     xen_get_domid,
     xen_is_vm_running,
+    xen_list_vms,
     xen_restore_vm,
     xen_save_vm,
 )
@@ -143,3 +144,13 @@ class VirtualMachine:
 
     def eject_cd(self):
         xen_eject_cd(self.vm_name, FIRST_CDROM_DRIVE)
+
+    @staticmethod
+    def is_dangling(dom_id: int) -> bool:
+        vm_infos = xen_list_vms()
+
+        for info in vm_infos:
+            if int(info["ID"]) == dom_id:
+                return info["Name"] == "(null)"
+
+        return False

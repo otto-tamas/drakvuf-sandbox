@@ -131,10 +131,15 @@ def run_vm(
         yield vm
     else:
         vm.restore()
+        dom_id = vm.get_domid()
         try:
             yield vm
         finally:
             vm.destroy()
+            if VirtualMachine.is_dangling(dom_id):
+                logger.warning(
+                    f"Domain ID {dom_id} is dangling after destroying VM {vm.vm_name}"
+                )
 
 
 @contextlib.contextmanager
