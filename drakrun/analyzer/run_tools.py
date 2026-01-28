@@ -1,6 +1,7 @@
 import contextlib
 import logging
 import pathlib
+import psutil
 import subprocess
 import threading
 import time
@@ -47,7 +48,6 @@ def log_activity_watchdog(
     last_activity_time = time.time()
 
     while not stop_event.wait(timeout=5):
-
         try:
             current_size = output_file.stat().st_size
 
@@ -163,3 +163,23 @@ def run_screenshotter(
         yield
     finally:
         screenshotter.stop()
+
+
+def find_dangling_qemu_process_id(dom_id: int) -> Optional[int]:
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        if not proc.info["name"].startswith("qemu-system-"):
+            continue
+        cmdline = proc.info["cmdline"]
+        for i, arg in enumerate(cmdline):
+            if arg == "-xen-domid" and i + 1 < len(cmdline):
+                try:
+                    if int(cmdline[i + 1]) == dom_id:
+                        return proc.info["pid"]
+                except ValueError:
+                    continue
+    return None
+
+
+if __name__ == "__main__":
+    print(find_dangling_qemu_process_id(1))
+    print(find_dangling_qemu_process_id(15))
