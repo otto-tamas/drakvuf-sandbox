@@ -150,7 +150,7 @@ def extract_archive_on_vm(
         )
         command = [
             config.drakrun.path_to_7zip,
-            "e",
+            "x",
             str(guest_archive_resolved_path),
             "-o" + str(guest_extraction_dir),
             *(["-p" + archive_password] if archive_password else []),
@@ -253,18 +253,21 @@ def analyze_file(
                 guest_target_directory=options.guest_target_directory,
                 archive_password=options.archive_password,
             )
-            if options.guest_working_directory is None:
-                options.guest_working_directory = target_dir
 
             if options.start_command is None:
                 archive_executable_path = str(
                     target_dir / options.guest_archive_entry_path
                 )
+                # Set working directory to the archive entry's parent directory
+                if options.guest_working_directory is None:
+                    options.guest_working_directory = pathlib.PureWindowsPath(
+                        archive_executable_path
+                    ).parent
                 log.info(
                     f"Archive mode: setting start_command from archive_entry_path: {archive_executable_path}"
                 )
                 log.info(
-                    f"  target_dir={target_dir}, guest_archive_entry_path={options.guest_archive_entry_path}"
+                    f"  target_dir={target_dir}, guest_working_directory={options.guest_working_directory} guest_archive_entry_path={options.guest_archive_entry_path}"
                 )
                 start_method, options.start_command = get_startup_method_and_argv(
                     archive_executable_path, preferred_start_method
@@ -272,6 +275,9 @@ def analyze_file(
                 # If user provides its own method, we will stick to that one
                 if options.start_method is None:
                     options.start_method = start_method
+
+            if options.guest_working_directory is None:
+                options.guest_working_directory = target_dir
 
             log.info(f"Archive mode: start_command set to {options.start_command}")
 
@@ -375,12 +381,13 @@ def analyze_file(
                     enabled=(not options.no_screenshotter),
                 ),
                 run_drakvuf(
-                    vm.vm_name,
-                    vmi_info,
-                    kernel_profile_path,
-                    drakmon_file,
-                    drakvuf_err_file,
-                    drakvuf_args,
+                    vm_name=vm.vm_name,
+                    vmi_info=vmi_info,
+                    kernel_profile_path=kernel_profile_path,
+                    output_file=drakmon_file,
+                    output_err_file=drakvuf_err_file,
+                    drakvuf_args=drakvuf_args,
+                    drakvuf_version_info=drakvuf_version_info,
                     exec_parameters=exec_parameters,
                     drakvuf_cwd=output_dir,
                 ) as drakvuf,
